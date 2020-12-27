@@ -19,26 +19,6 @@ function expectedcount(post, pind, nind, iind, pars, U)
     return N, r
 end
 
-"""
-Expected log likelihood function.
-For GHq mode.
-"""
-function ell(newpar, pars, mc::Array{mcov, 1}, bgh::GHq, post, pind, nind, q, u)::eltype(newpar)
-    lnp = zero(eltype(newpar))
-    for g in pars.group
-        for p in pind[g]
-            μ = mc[p].m
-            T = mc[p].T.U
-            if u[p] !== missing
-                for l in axes(bgh.w, 1)
-                    lnp += @views log(irf(newpar, pars, T*bgh.n[l,:]'-μ, u[p], q)) * post[p,l] * nind[p] * bgh.w[l] / mvn(bgh.n[l,:])
-                end
-            end
-        end
-    end
-    return lnp
-end
-
 @inline function mvn(x)::eltype(x) 
     length(x) == 1 ? pdf(Normal(), x)[1] : pdf(MvNormal(length(q), 1.0), x)[1] # nomal density
 end
@@ -50,7 +30,11 @@ function ell(newpar, pars, bgh::DNq, r, q)::eltype(newpar)
     lnp::eltype(newpar) = zero(eltype(newpar))
     for k in axes(r, 1)
         for l in axes(bgh.n, 1)
-            lnp += @views log(irf(newpar, pars, bgh.n[l, :], k-1, q)) * r[k, l]
+            p = @views irf(newpar, pars, bgh.n[l, :], k-1, q)
+            if p < 0.0
+                @error "Calculated probability is negative ($p)! See your model setting or data."
+            end
+            lnp += log(p) * r[k, l]
         end
     end
     if typeof(pars) <: guessing

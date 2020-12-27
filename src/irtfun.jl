@@ -10,7 +10,7 @@ using DataFrames: AbstractDataFrame, mapcols
 using StaticArrays
 using LinearAlgebra: LowerTriangular, diagm, Cholesky, cholesky, det, Hermitian
 using Statistics: mean
-using Optim: optimize, BFGS, minimizer
+using Optim: optimize, BFGS, Newton, minimizer
 
 include("Models.jl")
 include("IRTmodels/graded.jl")
@@ -25,7 +25,6 @@ include("index.jl")
 include("Rescore.jl")
 include("Qmatrix.jl")
 include("Estimate.jl")
-include("EstimateAbility.jl")
 include("UpdateLatentDistributions.jl")
 include("CheckParameters.jl")
 
@@ -39,11 +38,8 @@ export graded
 export guessing
 export LPE
 
-export GHq
 export DNq
-export mcov
 export initializenode
-export adapt!
 
 export BAEstep!
 export initializematrix
@@ -69,8 +65,6 @@ export explanatoryMIRT
 export Estep
 export Mstep
 export estimate
-
-export _eap
 
 export Moments
 export updateAGH!

@@ -9,29 +9,19 @@ Run one EM cycle.
 - `pind` Array of array which contains the locations of all records. The array of locations is stored by each groups where records bnelong to.
 - `nind` Matrix contains the observed counts of all records.
 - `iind` Array of array which the item location responded to for all records.
-- `gh` Array of Gauss-Hermite quadrature's nodes and weights. One set of nodes and weights are prepared for each records.
+- `gh` Array of quadrature's nodes and weights. One set of nodes and weights are prepared for each groups.
 - `U` Matrix of item response.
 - `pars` Provisional item parameters.
 - `Q` Q matrix.
 """
-function BAEMcycle(lnL, post, pind, nind, iind, mc, bgh::GHq, U, pars, Q; Mstep = Mstep())
-    BAEstep!(lnL, post, pind, iind, mc, bgh::GHq, U, pars, Q)
-    g = (j) -> gradient(x′ -> ell(x′, pars[j], mc, bgh, post, pind, nind, Q[j,:], @view U[:,j]), take(pars[j], Q[j,:]))
-    H = (j) -> hessian(x′ -> ell(x′, pars[j], mc, bgh, post, pind, nind, Q[j,:], @view U[:,j]), take(pars[j], Q[j,:]))
-    Threads.@threads for i in axes(pars, 1)
-        if !pars[i].fixed
-            @fastmath @inbounds Newton(pars, g, H, i, Q[i,:]; atol = Mstep.atol, N = Mstep.N)
-        end
-    end
-    return nothing, nothing
-end
-
 function BAEMcycle(lnL, post, pind, nind, iind, gh, bgh::DNq, U, pars, Q; Mstep = Mstep())
     BAEstep!(lnL, post, pind, iind, gh, U, pars, Q)
     N, r = expectedcount(post, pind, nind, iind, pars, U)
-    # g = (j) -> gradient(x′ -> ell(x′, pars[j], bgh, r[j], Q[j,:]), take(pars[j], Q[j,:]))        
-    # H = (j) -> hessian(x′ -> ell(x′, pars[j], bgh, r[j], Q[j,:]), take(pars[j], Q[j,:]))
-    Threads.@threads for i in axes(pars, 1)
+    if Mstep.method == :Newton
+        g = (j) -> gradient(x′ -> ell(x′, pars[j], bgh, r[j], Q[j,:]), take(pars[j], Q[j,:]))        
+        H = (j) -> hessian(x′ -> ell(x′, pars[j], bgh, r[j], Q[j,:]), take(pars[j], Q[j,:]))
+    end
+    for i in axes(pars, 1)
         if !pars[i].fixed
             if Mstep.method == :Newton
                 @fastmath @inbounds Newton(pars, g, H, i, Q[i,:]; atol = Mstep.atol, N = Mstep.N)

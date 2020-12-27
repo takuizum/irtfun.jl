@@ -9,13 +9,21 @@ end
 
 struct Mstep
     N
-    method
+    method # :Newton or BFGS()
     atol
     Mstep(;N = 10, method = BFGS(), atol = 1e-5) = new(N, method, atol)
 end
 
 """
 Run EM cycle to estimate the model item parameters from data and Q matrix.
+
+# Graded Response Model (Samejima, 1969) -> `graded()`
+
+# 3 parameter logistic model -> `guessing()`
+
+# Logistic exponential model -> `LPE()`
+
+
 """
 function estimate(D::AbstractDataFrame, ndims::Int64, model::IRTmodel; group = fill(1, size(D, 1)), E::Estep = Estep(), M::Mstep = Mstep())
     if typeof(model) <: IRTmodel
@@ -43,30 +51,20 @@ function _estimate(D, Q, model, E::Estep, M::Mstep)
     post = initializematrix(P, E.quadpts^size(Q, 2))
     pars = [init(model[i], Q[i,:], D[:, Not([:__count, :__group])][:, i]) for i in 1:I]
     [setgroupindex!(pars[j], U[:,j], G) for j in 1:I]
-    ghsize = E.dentype == :DN ? length(unique(G)) : P
-    if E.dentype == :GH
-        gh = [mcov(size(Q, 2)) for i in axes(U, 1)]
-    elseif E.dentype == :DN
-        gh = [initializenode(size(Q, 2), E.quadpts; dentype = E.dentype) for i in 1:ghsize]
-    end
-    bgh = initializenode(size(Q, 2), E.quadpts; dentype = E.dentype) # for reference
+    ghsize = length(unique(G))
+    gh = [initializenode(size(Q, 2), E.quadpts) for i in 1:ghsize]
+    bgh = initializenode(size(Q, 2), E.quadpts) # for reference
     pmoments = [Moments(size(Q, 2)) for _ in unique(G)]
     # Start EM Cycle
     if E.method == :BAEM
         for iter in 1:E.N
             print("EMcycle = ", @sprintf "%4.0f : " iter)
             old = copy.(pars)
-            N, r = BAEMcycle(lnL, post, pind, nind, iind, gh, bgh, U, pars, Q; Mstep = M)
             if any(checitemparameters.(pars))
                 error("\nStop the estimation.\n")
             end
-            if E.dentype == :GH
-                moments = [_eap(post[p,:], gh[p], bgh) for p in axes(post, 1)]
-                [adapt!(gh[p], moments[p]) for p in axes(gh, 1)]
-                updateAGH!(pind, nind, moments, pmoments, size(Q, 2))
-            elseif E.dentype == :DN
-                updateDN!(pind, nind, post, gh, pmoments)
-            end
+            N, r = BAEMcycle(lnL, post, pind, nind, iind, gh, bgh, U, pars, Q; Mstep = M)
+            updateDN!(pind, nind, post, gh, pmoments)
             @fastmath @inbounds [rescale!(pars[i], pmoments[1].μ, pmoments[1].Σ, Q[i,:]) for i in axes(pars, 1)]
             flag = checkconvergence(old, pars; atol = E.atol)
             print(@sprintf " MOMENTS μ = %1.3f, σ² = %1.3f" pmoments[1].μ[1] pmoments[1].Σ[1])
@@ -77,7 +75,6 @@ function _estimate(D, Q, model, E::Estep, M::Mstep)
             print("\r")
         end
     end
-
     # Report estimated parameters, SE, and the other information.
     return pars, pmoments
 end
