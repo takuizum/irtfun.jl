@@ -23,10 +23,10 @@ function checkitem(pars::guessing)
             return true
         end
     end
-    # if !(0.0 ≤ p[end] ≤ 1.0)
-    #     @warn "Guessing parameter is out of range 0 to 1. Estimation seems to fail"
-    #     return true
-    # end
+    if !(0.0 ≤ p[end] ≤ 1.0)
+        @warn "Guessing parameter is out of range 0 to 1. Estimation seems to fail"
+        return true
+    end
     return false
 end
 

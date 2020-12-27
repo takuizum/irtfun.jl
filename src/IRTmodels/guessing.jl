@@ -14,9 +14,23 @@ function _distribute!(new, old::guessing)
     old.c = [new[end]]
 end
 
+function _distribute!(new, old::guessing, q)
+    old.a = new[begin:length(old.a)][q]
+    old.d = [new[length(old.a)+1]]
+    old.c = [new[end]]
+end
+
 function _distribute(new, old::guessing)
     out = copy(old)
     out.a = new[begin:length(out.a)]
+    out.d = [new[length(out.a)+1]]
+    out.c = [new[end]]
+    return out
+end
+
+function _distribute(new, old::guessing, q)
+    out = copy(old)
+    out.a = new[begin:length(out.a)][q]
     out.d = [new[length(out.a)+1]]
     out.c = [new[end]]
     return out
