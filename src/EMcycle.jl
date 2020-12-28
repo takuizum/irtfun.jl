@@ -18,15 +18,15 @@ function BAEMcycle(lnL, post, pind, nind, iind, gh, bgh::DNq, U, pars, Q; Mstep 
     BAEstep!(lnL, post, pind, iind, gh, U, pars, Q)
     N, r = expectedcount(post, pind, nind, iind, pars, U)
     if Mstep.method == :Newton
-        g = (j) -> gradient(x′ -> ell(x′, pars[j], bgh, r[j], Q[j,:]), take(pars[j], Q[j,:]))        
-        H = (j) -> hessian(x′ -> ell(x′, pars[j], bgh, r[j], Q[j,:]), take(pars[j], Q[j,:]))
+        g = (j) -> gradient(x′ -> ell(x′, pars[j], bgh, r[j], N[j, :], Q[j,:]), take(pars[j], Q[j,:]))        
+        H = (j) -> hessian(x′ -> ell(x′, pars[j], bgh, r[j], N[j, :], Q[j,:]), take(pars[j], Q[j,:]))
     end
     for i in axes(pars, 1)
         if !pars[i].fixed
             if Mstep.method == :Newton
                 @fastmath @inbounds Newton(pars, g, H, i, Q[i,:]; atol = Mstep.atol, N = Mstep.N)
             else
-                res = optimize(x′ -> -ell(x′, pars[i], bgh, r[i], Q[i,:]), take(pars[i], Q[i,:]), Mstep.method)
+                res = optimize(x′ -> -ell(x′, pars[i], bgh, r[i], N[i, :], Q[i,:]), take(pars[i], Q[i,:]), Mstep.method)
                 distribute!(minimizer(res), pars[i], Q[i,:])
             end
         end

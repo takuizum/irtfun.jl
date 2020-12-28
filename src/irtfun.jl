@@ -8,7 +8,7 @@ using ForwardDiff: gradient, hessian, Dual
 using Printf: @sprintf
 using DataFrames: AbstractDataFrame, mapcols
 using StaticArrays
-using LinearAlgebra: LowerTriangular, diagm, Cholesky, cholesky, det, Hermitian
+using LinearAlgebra: LowerTriangular, diagm, Cholesky, cholesky, det, Hermitian, tril!
 using Statistics: mean
 using Optim: optimize, BFGS, Newton, minimizer
 

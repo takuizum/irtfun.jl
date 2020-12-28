@@ -26,7 +26,7 @@ end
 """
 Expected log likelihood function. For DN mode.
 """
-function ell(newpar, pars, bgh::DNq, r, q)::eltype(newpar)
+function ell(newpar, pars, bgh::DNq, r, N, q)::eltype(newpar)
     lnp::eltype(newpar) = zero(eltype(newpar))
     for k in axes(r, 1)
         for l in axes(bgh.n, 1)
@@ -34,7 +34,7 @@ function ell(newpar, pars, bgh::DNq, r, q)::eltype(newpar)
             if p < 0.0
                 @error "Calculated probability is negative ($p)! See your model setting or data."
             end
-            lnp += log(p) * r[k, l]
+            lnp += log(p) * r[k, l] / N[l]
         end
     end
     if typeof(pars) <: guessing
